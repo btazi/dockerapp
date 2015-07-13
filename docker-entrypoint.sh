@@ -2,11 +2,16 @@ git clone --depth 1 http://bitbucket.org/btazi/dockerapp app
 
 cd app
 
+source "/usr/local/share/chruby/chruby.sh"
+chruby ruby 
+
+gem install bundler
+
 bundle install
 
 bundle exec rake db:migrate
 
-if [[ $? != 0]]; then
+if [[ $? != 0 ]]; then
 	echo
 	echo "== Failed to migrate. Running setup first."
 	echo
@@ -14,4 +19,6 @@ if [[ $? != 0]]; then
 	bundle exec rake db:migrate
 fi
 
-bundle exec rails server
+export SECRET_KEY_BASE=$(rake secret)
+
+bundle exec rails server -b 0.0.0.0
