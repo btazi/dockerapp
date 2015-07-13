@@ -23,7 +23,7 @@ test:
 production:
   adapter: postgresql
   user: app_user
-  password:AZERTYUIOP
-  db:app_database
+  password: AZERTYUIOP
+  db: app_database
   pool: 5
   host: postgres
