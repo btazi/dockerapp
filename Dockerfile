@@ -12,6 +12,12 @@ Run apt-get update
 Run apt-get upgrade -y
 Run apt-get install -y curl wget ca-certificates build-essential autoconf python-software-properties libyaml-dev
 
+#Install nginx repositories
+RUN wget http://nginx.org/keys/nginx_signing.key
+RUN apt-key add nginx_signing.key
+RUN echo "deb http://nginx.org/packages/ubuntu/ trustry nginx" >> /etc/apt/sources.list.d/nginx.list
+RUN echo "deb-src http://nginx.org/packages/ubuntu/ trusty nginx" >> /etc/apt/sources.list.d/nginx.list
+
 #Finish installing remaining dependencies
 RUN apt-get install -y libssl-dev libreadline6 libreadline6-dev zlib1g zlib1g-dev bison openssl make git libpq-dev libsqlite3-dev nodejs
 Run apt-get clean
@@ -40,9 +46,10 @@ RUN rm -rf /home/app/src #remove ruby source code
 ADD docker-entrypoint.sh /home/app/docker-entrypoint.sh
 RUN sudo chmod +x /home/app/docker-entrypoint.sh
 ADD setup.sh /home/app/setup.sh
+ADD nginx.conf /home/app/nginx.conf
 
 ENV RAILS_ENV=production
 
-EXPOSE 3000:3000
+EXPOSE 80
 
 ENTRYPOINT /home/app/docker-entrypoint.sh
