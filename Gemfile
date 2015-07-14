@@ -49,7 +49,7 @@ gem 'bootstrap-sass'
 gem 'sass-rails', '~> 5.0'
 gem 'pry-rails'
 gem 'pry-byebug'
-gem 'puma'
+gem 'unicorn'
 gem 'redcarpet'
 group :test do
   gem 'minitest-rails'

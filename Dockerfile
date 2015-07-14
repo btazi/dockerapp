@@ -1,55 +1,38 @@
-FROM ubuntu:utopic
-MAINTAINER Badr Tazi <tasibadr@gmail.com>
+FROM seapy/ruby:2.2.0
+MAINTAINER ChangHoon Jeong <iamseapy@gmail.com>
 
-#Just use bash.
-RUN rm /bin/sh && ln -s /bin/bash /bin/sh
+RUN apt-get update
 
-#Debian complains about the terminal environment on DOcker. Use this.
-Run echo 'debconf debconf/frontend select Noninterractive' | debconf-set-selections
+# Install nodejs
+RUN apt-get install -qq -y nodejs
 
-#Install base packages
-Run apt-get update
-Run apt-get upgrade -y
-Run apt-get install -y curl wget ca-certificates build-essential autoconf python-software-properties libyaml-dev
+# Intall software-properties-common for add-apt-repository
+RUN apt-get install -qq -y software-properties-common
 
-#Install nginx repositories
-RUN wget http://nginx.org/keys/nginx_signing.key
-RUN apt-key add nginx_signing.key
-RUN echo "deb http://nginx.org/packages/ubuntu/ trustry nginx" >> /etc/apt/sources.list.d/nginx.list
-RUN echo "deb-src http://nginx.org/packages/ubuntu/ trusty nginx" >> /etc/apt/sources.list.d/nginx.list
+# Install Nginx.
+RUN add-apt-repository -y ppa:nginx/stable
+RUN apt-get update
+RUN apt-get install -qq -y nginx
+RUN echo "\ndaemon off;" >> /etc/nginx/nginx.conf
+RUN chown -R www-data:www-data /var/lib/nginx
+# Add default nginx config
+ADD nginx-sites.conf /etc/nginx/sites-enabled/default
 
-#Finish installing remaining dependencies
-RUN apt-get install -y libssl-dev libreadline6 libreadline6-dev zlib1g zlib1g-dev bison openssl make git libpq-dev libsqlite3-dev nodejs
-Run apt-get clean
-
-#force sudoers to not being asked the password
-RUN echo %sudo ALL=NOPASSWD: ALL >> /etc/sudoers
-
-#Ruby-install
-RUN wget -O ruby-install-0.5.0.tar.gz https://github.com/postmodern/ruby-install/archive/v0.5.0.tar.gz && tar -xzvf ruby-install-0.5.0.tar.gz && cd ruby-install-0.5.0/ && make install
-
-#chruby
-RUN wget -O chruby-0.3.9.tar.gz https://github.com/postmodern/chruby/archive/v0.3.9.tar.gz && tar -xzvf chruby-0.3.9.tar.gz && cd chruby-0.3.9/ && make install
-
-RUN rm -rf /var/cache/apt/* /tmp/*
-
-#Add a user just for running the app
-RUN useradd -m -G sudo app
-
+# Install Rails App
 USER app
 WORKDIR /home/app
+ONBUILD ADD Gemfile /home/app/Gemfile
+ONBUILD ADD Gemfile.lock /home/app/Gemfile.lock
+ONBUILD RUN bundle install --without development test
 
-# Install a Ruby version
-RUN ruby-install ruby # replace ruby by version number
-RUN rm -rf /home/app/src #remove ruby source code
+# Add default unicorn config
+ADD unicorn.rb /home/app/config/unicorn.rb
+
+ENV RAILS_ENV production
+
+CMD bundle exec rake assets:precompile
 
 ADD docker-entrypoint.sh /home/app/docker-entrypoint.sh
 RUN sudo chmod +x /home/app/docker-entrypoint.sh
 ADD setup.sh /home/app/setup.sh
-ADD nginx.conf /home/app/nginx.conf
-
-ENV RAILS_ENV=production
-
-EXPOSE 80
-
 ENTRYPOINT /home/app/docker-entrypoint.sh
